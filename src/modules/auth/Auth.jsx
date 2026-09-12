@@ -10,14 +10,46 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState(""); // Only for register
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isLogin) {
-      console.log("Logging in with:", { email, password });
-      // Add your login API call here
-    } else {
-      console.log("Registering with:", { username, email, password });
-      // Add your registration API call here
+
+    // Pick the right URL and payload based on the mode
+    const endpoint = isLogin ? 'http://localhost:5000/api/auth/login' : 'http://localhost:5000/api/auth/register';
+    
+    // Maps the frontend 'username' state to the 'name' key expected by the Mongoose schema
+    const payload = isLogin 
+      ? { email, password } 
+      : { name: username, email, password };
+
+    try {
+      console.log("Sending Payload:", JSON.stringify(payload));
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      // fetch doesn't reject on 4xx/5xx status codes, so check response.ok
+      if (!response.ok) {
+        throw new Error(data.message || 'Authentication failed');
+      }
+
+      if (isLogin) {
+        console.log('Login successful:', data);
+        // Example: Store auth token and redirect
+        // localStorage.setItem('token', data.token);
+      } else {
+        console.log('Registration successful:', data);
+        // Example: Switch to login tab or auto-login
+      }
+    } catch (error) {
+      console.error('Error during authentication:', error.message);
+      // Add logic here to display error messages to the user (e.g., setError(error.message))
     }
   };
 
@@ -27,12 +59,14 @@ export default function Auth() {
         {/* Toggle Headers */}
         <div className="auth-toggle">
           <button 
+            type="button"
             className={isLogin ? "active" : ""} 
             onClick={() => setIsLogin(true)}
           >
             Login
           </button>
           <button 
+            type="button"
             className={!isLogin ? "active" : ""} 
             onClick={() => setIsLogin(false)}
           >
